@@ -1,0 +1,13 @@
+build/
+classes/
+logs/
+backup/
+data/
+.gradle/
+.idea
+*.iml
+.gradle
+*.idea
+log
+out/
+gradle
