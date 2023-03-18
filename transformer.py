@@ -46,9 +46,20 @@ def feed_forward(x):
     return layer(x)
 
 
-def encode(x):
+def encode_block(x):
     z = multi_head(x, 8)
     z = tf.keras.layers.LayerNormalization()(x + z)
     e = feed_forward(z)
 
     return tf.keras.layers.LayerNormalization()(z + e)
+
+
+def encode(x, num):
+    layers = []
+    z = x
+    for i in range(num):
+        e = encode_block(z)
+        layers.append(z)
+        z = e
+
+    return layers
