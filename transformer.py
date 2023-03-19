@@ -58,6 +58,9 @@ class Transformer(object):
             self.encode_layers.append(e)
             z = e
 
+    def decoder(self):
+        pass
+
 
 def main():
     x = [[3, 38], [20, 9], [31, 37, 38, 10], [1, 2, 3, 4, 5], [7, 8]]
@@ -68,9 +71,9 @@ def main():
     # print(x_emb)
     # print("=" * 36)
 
-    trf = Transformer(x_emb, 3, 2)
-    trf.encoder()
-    print(trf.encode_layers[-1])
+    trm = Transformer(x_emb, 3, 2)
+    trm.encoder()
+    print(trm.encode_layers[-1])
 
 
 if __name__ == '__main__':
