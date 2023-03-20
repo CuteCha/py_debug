@@ -169,14 +169,14 @@ class Transformer3(object):
         return tf.matmul(score, v)
 
     def parallel_head(self, x, num, name=None):
-        initializer = tf.keras.initializers.GlorotNormal()
+        initializer = keras.initializers.GlorotNormal()
         w = tf.Variable(initial_value=initializer(shape=(self.x_dim, self.x_dim * num)), name=name)
         z = tf.matmul(x, w)
         print(f"z.get_shape()={z.get_shape()}")
 
         return tf.concat(tf.split(z, num, axis=2), axis=0)
 
-    def multi_head2(self, x, num):
+    def multi_head(self, x, num):
         q_ = self.parallel_head(x, num, name="w_q")
         k_ = self.parallel_head(x, num, name="w_q")
         v_ = self.parallel_head(x, num, name="w_q")
@@ -185,31 +185,10 @@ class Transformer3(object):
         o = tf.concat(tf.split(o_, num, axis=0), axis=2)  # [B,L,num*d]
         print(f"o.get_shape()={o.get_shape()}")
 
-        initializer = tf.keras.initializers.GlorotNormal()
+        initializer = keras.initializers.GlorotNormal()
         w_o = tf.Variable(initial_value=initializer(shape=(self.x_dim * num, self.x_dim)), name="w_o")
 
         return tf.matmul(o, w_o)
-
-    def multi_head(self, x, num):
-        initializer = tf.keras.initializers.GlorotNormal()
-        w_q = tf.Variable(initial_value=initializer(shape=(self.x_len * num, self.x_len)), name="w_q")
-        w_k = tf.Variable(initial_value=initializer(shape=(self.x_len * num, self.x_len)), name="w_k")
-        w_v = tf.Variable(initial_value=initializer(shape=(self.x_len * num, self.x_len)), name="w_v")
-
-        q = tf.matmul(w_q, x)  # [B,num*L,d]
-        k = tf.matmul(w_k, x)
-        v = tf.matmul(w_v, x)
-
-        q_ = tf.concat(tf.split(q, num, axis=2), axis=0)  # [B*num,L,d]
-        k_ = tf.concat(tf.split(k, num, axis=2), axis=0)
-        v_ = tf.concat(tf.split(v, num, axis=2), axis=0)
-
-        o_ = self.attention(q_, k_, v_)  # [B*num,L,d]
-        o = tf.concat(tf.split(o_, num, axis=0), axis=2)  # [B,num*L,d]
-
-        w_o = tf.Variable(initial_value=initializer(shape=(self.x_len, self.x_len * num)), name="w_o")
-
-        return tf.matmul(w_o, o)
 
     def feed_forward(self, x):
         layer = keras.Sequential([
@@ -220,7 +199,7 @@ class Transformer3(object):
         return layer(x)
 
     def encode_block(self, x):
-        z = self.multi_head2(x, self.num_head)
+        z = self.multi_head(x, self.num_head)
         z = keras.layers.LayerNormalization()(x + z)
         e = self.feed_forward(z)
 
