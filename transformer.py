@@ -218,16 +218,102 @@ class Transformer3(object):
         pass
 
 
+class Transformer4(object):
+    def __init__(self, x, num_head, num_block, mask=None):
+        self.x = x  # [B,L,d]
+        self.mask = mask  # [B,L]
+        self.num_head = num_head
+        self.num_block = num_block
+
+        self.x_shape = x.get_shape()
+        self.x_len = self.x_shape[-2]
+        self.x_dim = self.x_shape[-1]
+        self.encode_layers = []
+
+    @classmethod
+    def make_mask(cls, x_mask):
+        '''
+        :param x_mask: [B,L]
+        :return: mask [B,L,L]
+        '''
+        B, L = x_mask.get_shape()
+        x_mask = tf.cast(tf.reshape(x_mask, [B, 1, L]), tf.float32)
+        b_ones = tf.ones(shape=[B, L, 1], dtype=tf.float32)
+
+        return b_ones * x_mask
+
+    def attention(self, q, k, v, mask=None):
+        k_t = tf.transpose(k, perm=[0, 2, 1])
+        score = tf.matmul(q, k_t) / tf.sqrt(tf.constant(self.x_dim, dtype=tf.float32))
+
+        if mask is not None:
+            mask = self.make_mask(mask)
+            score += ((1.0 - tf.cast(mask, tf.float32)) * (-1E6))
+
+        score = keras.activations.softmax(score)  # [B,L,L]
+
+        return tf.matmul(score, v)
+
+    def parallel_head(self, x, num, name=None):
+        initializer = keras.initializers.GlorotNormal()
+        w = tf.Variable(initial_value=initializer(shape=(self.x_dim, self.x_dim * num)), name=name)
+        z = tf.matmul(x, w)
+        print(f"z.get_shape()={z.get_shape()}")
+
+        return tf.concat(tf.split(z, num, axis=2), axis=0)
+
+    def multi_head(self, x, num):
+        q_ = self.parallel_head(x, num, name="w_q")
+        k_ = self.parallel_head(x, num, name="w_q")
+        v_ = self.parallel_head(x, num, name="w_q")
+
+        o_ = self.attention(q_, k_, v_)  # [B*num,L,d]
+        o = tf.concat(tf.split(o_, num, axis=0), axis=2)  # [B,L,num*d]
+        print(f"o.get_shape()={o.get_shape()}")
+
+        initializer = keras.initializers.GlorotNormal()
+        w_o = tf.Variable(initial_value=initializer(shape=(self.x_dim * num, self.x_dim)), name="w_o")
+
+        return tf.matmul(o, w_o)
+
+    def feed_forward(self, x):
+        layer = keras.Sequential([
+            keras.layers.Dense(self.x_dim, activation="gelu"),
+            keras.layers.Dense(self.x_dim)
+        ])
+
+        return layer(x)
+
+    def encode_block(self, x):
+        z = self.multi_head(x, self.num_head)
+        z = keras.layers.LayerNormalization()(x + z)
+        e = self.feed_forward(z)
+
+        return keras.layers.LayerNormalization()(z + e)
+
+    def encoder(self):
+        z = self.x
+        print(f"z.get_shape()={z.get_shape()}")
+        for _ in range(self.num_block):
+            e = self.encode_block(z)
+            print(f"e.get_shape()={e.get_shape()}")
+            self.encode_layers.append(e)
+            z = e
+
+    def decoder(self):
+        pass
+
+
 def main():
     x = [[3, 38], [20, 9], [31, 37, 38, 10], [1, 2, 3, 4, 5], [7, 8]]
     x_pad = keras.preprocessing.sequence.pad_sequences(x, maxlen=4, padding="post", truncating="post")
-    # x_mask = tf.sequence_mask([len(seq) for seq in x], maxlen=4)
+    x_mask = tf.sequence_mask([len(seq) for seq in x], maxlen=4)
     embedding = keras.layers.Embedding(50, 3, input_length=5)
     x_emb = embedding(x_pad)
     # print(x_emb)
     # print("=" * 36)
 
-    trm = Transformer3(x_emb, 6, 2)
+    trm = Transformer4(x_emb, 6, 2, x_mask)
     trm.encoder()
     print(trm.encode_layers[-1])
 
