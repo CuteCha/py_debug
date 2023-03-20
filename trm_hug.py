@@ -44,5 +44,21 @@ def debug02():
     print(y)
 
 
+def debug03():
+    x = tf.constant([[[11, 13, 12, 14, 15, 16], [17, 18, 19, 120, 121, 122]],
+                     [[1, 3, 2, 4, 5, 6], [7, 8, 9, 10, 11, 12]]],
+                    dtype=tf.float32)
+    y = tf.concat(tf.split(x, 2, axis=2), axis=0)
+    z = tf.concat(tf.split(y, 2, axis=0), axis=2)
+    print(x.get_shape())
+    print(y.get_shape())
+    print(z.get_shape())
+    print("=" * 36)
+    print(x[0])
+    print(z[0])
+    print("=" * 36)
+    print(y)
+
+
 if __name__ == '__main__':
-    debug02()
+    debug03()
