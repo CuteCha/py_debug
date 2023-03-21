@@ -402,7 +402,7 @@ class Decoder(object):
         self.decode_layers = []
 
     @classmethod
-    def make_mask(cls, x_mask):
+    def create_pad_mask(cls, x_mask):
         '''
         :param x_mask: [B,L]
         :return: mask [B,L,L]
@@ -418,13 +418,25 @@ class Decoder(object):
         mask = 1 - tf.linalg.band_part(tf.ones((size, size)), -1, 0)
         return mask  # (seq_len, seq_len)
 
-    def attention(self, q, k, v, mask=None):
+    def make_mask(self, pad_mask=None, look_ahead_mask=None):
+        if pad_mask is not None and look_ahead_mask is not None:
+            p_mask = self.create_pad_mask(pad_mask)
+            l_mask = self.create_pad_mask(self.x_len)
+            return tf.minimum(p_mask, l_mask)
+        elif pad_mask is not None:
+            return self.create_pad_mask(pad_mask)
+        elif look_ahead_mask is not None:
+            return self.create_pad_mask(self.x_len)
+        else:
+            return None
+
+    def attention(self, q, k, v, pad_mask=None, look_ahead_mask=None):
         k_t = tf.transpose(k, perm=[0, 2, 1])
         score = tf.matmul(q, k_t) / tf.sqrt(tf.constant(self.x_dim, dtype=tf.float32))
 
+        mask = self.make_mask(pad_mask, look_ahead_mask)  # 0->mask, 1->unmask
         if mask is not None:
-            mask = self.make_mask(mask)
-            score += ((1.0 - tf.cast(mask, tf.float32)) * (-1E6))
+            score += ((1.0 - tf.cast(pad_mask, tf.float32)) * (-1E6))
 
         score = keras.activations.softmax(score)  # [B,L,L]
 
