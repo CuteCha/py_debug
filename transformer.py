@@ -436,7 +436,7 @@ class Decoder(object):
 
         mask = self.make_mask(pad_mask, look_ahead_mask)  # 0->mask, 1->unmask
         if mask is not None:
-            score += ((1.0 - tf.cast(pad_mask, tf.float32)) * (-1E6))
+            score += (tf.cast(pad_mask, tf.float32)) * (-1E6)
 
         score = keras.activations.softmax(score)  # [B,L,L]
 
