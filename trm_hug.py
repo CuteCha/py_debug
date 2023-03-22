@@ -60,5 +60,11 @@ def debug03():
     print(y)
 
 
+def debug04():
+    x_mask = tf.sequence_mask([1, 6, 2], 5)
+    print(x_mask)
+    print(1.0 - tf.cast(x_mask, dtype=tf.float32))
+
+
 if __name__ == '__main__':
-    debug03()
+    debug04()
