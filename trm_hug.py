@@ -62,12 +62,21 @@ def debug03():
 
 def debug04():
     # 1-->mask, 0-->unmask
-    pad_mask = tf.sequence_mask([1, 6, 2], 5)
-    print(1.0 - tf.cast(pad_mask, dtype=tf.float32))
+    pad_mask = 1.0 - tf.cast(tf.sequence_mask([1, 6, 2], 5), dtype=tf.float32)
+    print(pad_mask)
 
-    ahead_mask = 1 - tf.linalg.band_part(tf.ones((3, 3)), -1, 0)
+    ahead_mask = 1.0 - tf.linalg.band_part(tf.ones((3, 3)), -1, 0)
+    print(ahead_mask)
+
+
+def debug05():
+    # 1-->mask, 0-->unmask
+    pad_mask = 1.0 - tf.cast(tf.sequence_mask([[1, 6, 2], [3, 7, 5]], 5), dtype=tf.float32)
+    print(pad_mask)
+
+    ahead_mask = 1.0 - tf.linalg.band_part(tf.ones((2, 3, 3)), -1, 0)
     print(ahead_mask)
 
 
 if __name__ == '__main__':
-    debug04()
+    debug05()
