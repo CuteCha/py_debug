@@ -526,14 +526,16 @@ class Transformer5(object):
     def para_head(self, x, num_head):
         initializers = keras.initializers.GlorotNormal()
         w = tf.Variable(initial_value=initializers(self.x_dim, self.x_dim * num_head))
-        return tf.matmul(x, w)
+        o_ = tf.matmul(x, w)
+        return tf.concat(tf.split(o_, num_head, axis=2), axis=0)
 
     def multi_head(self, x, num_head, mask):
         q_ = self.para_head(x, num_head)
         k_ = self.para_head(x, num_head)
         v_ = self.para_head(x, num_head)
 
-        o_ = self.attention(q_, k_, v_, mask)
+        o = self.attention(q_, k_, v_, mask)
+        o_ = tf.concat(tf.split(o, num_head, axis=0), axis=2)
 
         initializers = keras.initializers.GlorotNormal()
         w_o = tf.Variable(initial_value=initializers(self.x_dim * num_head, self.x_dim))
