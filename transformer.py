@@ -505,6 +505,75 @@ class Decoder(object):
             z = e
 
 
+class Transformer5(object):
+    def __init__(self, x, y, num_head, num_enc, num_dec, pad_mask=None, look_mask=None):
+        self.batch_size, self.x_len, self.x_dim = x.get_shape()
+        self.x = x
+        self.y = y
+        self.num_head = num_head
+        self.num_enc = num_enc
+        self.num_dec = num_dec
+        self.pad_mask = pad_mask
+        self.look_mask = look_mask
+
+    def attention(self, q, k, v, mask=None):
+        score = tf.matmul(q, k, transpose_b=True) / tf.sqrt(tf.constant(self.x_dim, dtype=tf.float32))
+        if mask is not None:
+            score += (tf.cast(mask, dtype=tf.float32) * (-1E6))
+
+        return tf.matmul(score, v)
+
+    def para_head(self, x, num_head):
+        initializers = keras.initializers.GlorotNormal()
+        w = tf.Variable(initial_value=initializers(self.x_dim, self.x_dim * num_head))
+        return tf.matmul(x, w)
+
+    def multi_head(self, x, num_head, mask):
+        q_ = self.para_head(x, num_head)
+        k_ = self.para_head(x, num_head)
+        v_ = self.para_head(x, num_head)
+
+        o_ = self.attention(q_, k_, v_, mask)
+
+        initializers = keras.initializers.GlorotNormal()
+        w_o = tf.Variable(initial_value=initializers(self.x_dim * num_head, self.x_dim))
+
+        return tf.matmul(o_, w_o)
+
+    def ffn(self, x):
+        layer = keras.Sequential([
+            keras.layers.Dense(self.x_dim, activation="gelu"),
+            keras.layers.Dense(self.x_dim)
+        ])
+
+        return layer(x)
+
+    def encoder(self, x, num_head, mask):
+        z = self.multi_head(x, num_head, mask)
+        u = keras.layers.LayerNormalization()(x + z)
+        z = self.ffn(u)
+        return keras.layers.LayerNormalization()(u + z)
+
+    def cross_multi_head(self, y, enc, num_head, mask):
+        q_ = self.para_head(y, num_head)
+        k_ = self.para_head(enc, num_head)
+        v_ = self.para_head(enc, num_head)
+
+        o_ = self.attention(q_, k_, v_, mask)
+
+        initializers = keras.initializers.GlorotNormal()
+        w_o = tf.Variable(initial_value=initializers(self.x_dim * num_head, self.x_dim))
+
+        return tf.matmul(o_, w_o)
+
+    def decoder(self, y, enc, num_head, mask):
+        z = self.multi_head(y, num_head, mask)
+        u = keras.layers.LayerNormalization()(y + z)
+        z = self.cross_multi_head(u, enc, num_head, mask)
+        u = self.ffn(z)
+        return keras.layers.LayerNormalization()(z + u)
+
+
 def main():
     x = [[3, 38], [20, 9], [31, 37, 38, 10], [1, 2, 3, 4, 5], [7, 8]]
     x_pad = keras.preprocessing.sequence.pad_sequences(x, maxlen=4, padding="post", truncating="post")
