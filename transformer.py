@@ -548,11 +548,15 @@ class Transformer5(object):
 
         return layer(x)
 
+    @classmethod
+    def ln(cls, x):
+        return keras.layers.LayerNormalization()(x)
+
     def encoder(self, x, num_head, mask):
         z = self.multi_head(x, num_head, mask)
-        u = keras.layers.LayerNormalization()(x + z)
+        u = self.ln(x + z)
         z = self.ffn(u)
-        return keras.layers.LayerNormalization()(u + z)
+        return self.ln(u + z)
 
     def cross_multi_head(self, y, enc, num_head, mask):
         q_ = self.para_head(y, num_head)
@@ -568,10 +572,10 @@ class Transformer5(object):
 
     def decoder(self, y, enc, num_head, mask):
         z = self.multi_head(y, num_head, mask)
-        u = keras.layers.LayerNormalization()(y + z)
+        u = self.ln(y + z)
         z = self.cross_multi_head(u, enc, num_head, mask)
         u = self.ffn(z)
-        return keras.layers.LayerNormalization()(z + u)
+        return self.ln(z + u)
 
 
 def main():
