@@ -42,6 +42,31 @@ if [[ -z "$DATE_ID" ]]; then
   DATE_ID=$(date +%Y%m%d)
 fi
 
+commit="b3e4e68a0bc097f0ae7907b217c1119af9e03435"
+vscode_server="~/.vscode-server/${commit}"
+while [[ ! -f "${vscode_server}/server.sh" ]]; do
+  echo "${vscode_server} not exist ... `date`"
+  cp -r ./${commit}/* ${vscode_server}/
+  echo "copy commit done ... `date`"
+  sleep 30s
+done
+
+if [[ ! -f "${vscode_server}/server.sh" ]]; then
+  echo "${vscode_server} not exist ... `date`"
+  cp -r ./${commit}/* ${vscode_server}/
+  echo "copy commit done ... `date`"
+fi
+
+while true; do
+  if [[ ! -f "${vscode_server}/server.sh" ]]; then
+    echo "${vscode_server} not exist ... `date`"
+    cp -r ./${commit}/* ${vscode_server}/
+    echo "copy commit done ... `date`"
+  fi
+  sleep 30s
+done
+
+
 echo "------"
 echo "JOB=${JOB}"
 echo "COMMAND=${COMMAND}"
