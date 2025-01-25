@@ -57,8 +57,35 @@ def keras_bn_ln():
     print(keras.layers.LayerNormalization()(y))
 
 
+def one_hot_debug():
+    import pandas as pd
+    df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'], 'C': [1, 2, 3]})
+    print(df)
+    # one-hot
+    df_dum = pd.get_dummies(df)
+    print(df_dum)
+    tf.keras.preprocessing.text.one_hot(['a'], 5)
+    tf.keras.utils.to_categorical([3], 5)
+    tf.one_hot([3], 5)
+    '''
+    # y = tf.constant(['a', 'b', 'c'], dtype=tf.string)
+    labels = [0, 1, 2]
+    res = tf.one_hot(indices=labels, depth=3, on_value=1.0, off_value=0.0, axis=-1)
+    print(res)
+
+    import numpy as np
+    data = np.linspace(0, 9, 10)
+    data = tf.constant(data, dtype=tf.float32)
+    print(data)
+
+    label = tf.one_hot(indices=data, depth=10, on_value=1.0, off_value=0.0, axis=-1)
+    print(label)
+    '''
+
+
 def main():
-    keras_bn_ln()
+    # keras_bn_ln()
+    one_hot_debug()
 
 
 if __name__ == '__main__':

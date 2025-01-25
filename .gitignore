@@ -5,6 +5,7 @@ backup/
 data/
 .gradle/
 .idea
+.DS_Store
 *.iml
 .gradle
 *.idea
